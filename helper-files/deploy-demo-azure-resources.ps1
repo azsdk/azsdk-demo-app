@@ -1,11 +1,11 @@
-﻿$resourceNonce = [System.Guid]::NewGuid().ToString().Substring(0, 8)
-$resourceGroupName = "AzSDK-Demo"
+﻿$resourceNonce = $env:USERNAME + [System.Guid]::NewGuid().ToString().Substring(0, 2)
+$resourceGroupName = "AzSDK-Demo-RG"
 $deployLocation = "eastus"
-$webServicePlanName = "azsdkdemoasp" + $resourceNonce
-$webAppName = "azsdkdemowa" + $resourceNonce
+$webServicePlanName = "AzSDK-Demo-ASP"
+$webAppName = "azsdk-demo-wa-" + $resourceNonce
 $storageAccountName = "azsdkdemosa" + $resourceNonce
 
-Write-Host "Setting up demo resources. This will take few minutes..."
+Write-Host "Setting up demo resources. This will take ~ 2 to 4 minutes..."
 
 $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $deployLocation
 
@@ -38,9 +38,9 @@ $container = New-AzureStorageContainer -Context $storageAccount.Context `
                             -Permission Container
 
 $wc = [System.Net.WebClient]::new()
-$fileName = "secret" + ".jpg";
+$fileName = "prototype" + ".png";
 $tempFilePath = Join-Path $env:TEMP $fileName
-$wc.DownloadFile("https://raw.githubusercontent.com/azsdk/azsdk-demo-app/master/helper-files/secret.png", $tempFilePath)
+$wc.DownloadFile("https://raw.githubusercontent.com/azsdk/azsdk-demo-app/master/helper-files/prototype.png", $tempFilePath)
 $na = Set-AzureStorageBlobContent -Context $storageAccount.Context `
                             -Container $container.Name `
                             -BlobType Block `
@@ -56,9 +56,11 @@ Write-Host "Parameters:`n"
 Write-Host "Resource Group : " -NoNewline
 Write-Host "$resourceGroupName" -ForegroundColor Yellow
 Write-Host "App Service Plan : " -NoNewline
-Write-Host " $webServicePlanName" -ForegroundColor Yellow
+Write-Host "$webServicePlanName" -ForegroundColor Yellow
 Write-Host "Web App Name : " -NoNewline
-Write-Host " $webAppName" -ForegroundColor Yellow
+Write-Host "$webAppName" -ForegroundColor Yellow
+Write-Host "Storage Account Name : " -NoNewline
+Write-Host "$storageAccountName" -ForegroundColor Yellow
 Write-Host "Storage Account Connection String : "
 Write-Host "$storageAccountConnectionString`n" -ForegroundColor Yellow
 

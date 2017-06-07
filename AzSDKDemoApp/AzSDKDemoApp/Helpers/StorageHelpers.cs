@@ -28,9 +28,8 @@ namespace AzSDKDemoApp.Helpers
 			// Retrieve reference to a previously created container.
 			const string containerName = "patent-images";
 			var container = blobClient.GetContainerReference(containerName);
-
-			// Retrieve reference to a blob ie "picture.jpg".
-			const string fullFileName = "secret.jpg";
+			
+			const string fullFileName = "prototype.png";
 			var blockBlob = container.GetBlockBlobReference(fullFileName);
 			var newUri = new Uri(blockBlob.Uri.AbsoluteUri + blockBlob.GetSharedAccessSignature(readPolicy));
 			return newUri.ToString();
