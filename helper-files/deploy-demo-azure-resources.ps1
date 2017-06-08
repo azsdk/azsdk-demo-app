@@ -1,4 +1,4 @@
-﻿$resourceNonce = $env:USERNAME + [System.Guid]::NewGuid().ToString().Substring(0, 2)
+﻿$resourceNonce = [System.Guid]::NewGuid().ToString().Substring(0, 8)
 $resourceGroupName = "AzSDK-Demo-RG"
 $deployLocation = "eastus"
 $webServicePlanName = "AzSDK-Demo-ASP"
