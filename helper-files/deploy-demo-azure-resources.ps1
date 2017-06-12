@@ -127,8 +127,9 @@ Write-Host "Web App Name : " -NoNewline
 Write-Host "$webAppName" -ForegroundColor Yellow
 Write-Host "Storage Account Name : " -NoNewline
 Write-Host "$storageAccountName" -ForegroundColor Yellow
+$uri = "https://$($webApp.DefaultHostName)"
+Write-Host "`nOpening the Demo App: " -NoNewline 
+Write-Host "$uri" -ForegroundColor Yellow
 
-Write-Host "`nOpening the Demo App" 
-
-cmd.exe /C start "https://$($webApp.DefaultHostName)"
+cmd.exe /C start "$uri"
  
