@@ -1,23 +1,48 @@
-﻿$resourceNonce = [System.Guid]::NewGuid().ToString().Substring(0, 8)
-$resourceGroupName = "AzSDK-Demo-RG"
+﻿$ErrorActionPreference = 'Stop'
+<#
+$suffix = Read-Host -Prompt 'Enter a suffix for the demo resources. Can be your short name to easily identify. [ Only alphabets are allowed and should be of length mininum 4 characters and maximum 8 characters ] '
+if([string]::IsNullOrWhiteSpace($suffix)){
+    Write-Error 'Bad input! Run the script again.' 
+    break;
+}
+$suffix = $suffix.Trim()
+if($suffix.Length -lt 4 -and $suffix.Length -gt 8){
+    Write-Error 'Suffix too short or too long! Run the script again and enter a suffix with length between 4 and 8 characters.' 
+    break;
+}
+$suffix = $suffix.ToLower()
+if(!($suffix -match '^[a-z]+$')){
+    Write-Error 'Suffix contains non-alphabets! Run the script again and enter only alphabers.'
+    break;
+}
+#>
+
+$resourceNonce = [System.Guid]::NewGuid().ToString().Substring(0, 8)
+$resourceGroupName = "AzSDK-Demo-RG-" + $resourceNonce
+
+Write-Host "Setting up demo resources. This will take about 3 to 4 minutes..." -ForegroundColor Yellow
+
+$accountId = (Get-AzureRmContext).Account.Id
+
+$resourceGroup = Find-AzureRmResourceGroup -Tag @{"AccountId" = $accountId}
+if($resourceGroup -ne $null){
+    Write-Host "Found the demo ResourceGroup" -ForegroundColor Green
+    #Set RGName, Nonce
+    $resourceGroupName = $resourceGroup.name
+    $resourceNonce = $resourceGroup.tags.Nonce
+}
+else{
+    Write-Host "Creating a demo ResourceGroup" -ForegroundColor Yellow
+    $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $deployLocation `
+                        -Tag @{"AccountId" = $accountId; 
+                                "Nonce" = $resourceNonce;
+                                "CreatedOn" = [datetime]::UtcNow.ToString('yyyyMMddHHmmss')}
+}
+
 $deployLocation = "eastus"
-$webServicePlanName = "AzSDK-Demo-ASP"
+$webServicePlanName = "AzSDK-Demo-ASP-" + $resourceNonce
 $webAppName = "azsdk-demo-wa-" + $resourceNonce
 $storageAccountName = "azsdkdemosa" + $resourceNonce
-
-Write-Host "Setting up demo resources. This will take ~ 2 to 4 minutes..." -ForegroundColor Yellow
-
-
-try
-{
-    $resourceGroup = Get-AzureRmResourceGroup -Name $resourceGroupName -Location $deployLocation -ErrorAction Stop
-    Write-Host "Found the demo ResourceGroup" -ForegroundColor Green
-}
-catch
-{
-    Write-Host "Creating a demo ResourceGroup" -ForegroundColor Yellow
-    $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $deployLocation    
-}
 
 try
 {
@@ -33,6 +58,7 @@ catch
                             -Tier Basic
     Write-Host "Creating a demo AppServicePlan" -ForegroundColor Yellow
 }
+
 $webapps = Get-AzureRmWebApp -ResourceGroupName $resourceGroupName
 if($webapps -eq $null -or $webapps.Count -eq 0)
 {
@@ -65,6 +91,7 @@ else
     $storageAccount = $storageAccounts | Select -First 1
     Write-Host "Found the demo StorageAccount" -ForegroundColor Green
 }
+
 $storageAccountName = $storageAccount.StorageAccountName
 
 $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $resourceGroupName `
@@ -86,7 +113,6 @@ catch
                             -Name "patent-images" `
                             -Permission Container
 }
-
 
 $wc = [System.Net.WebClient]::new()
 $fileName = "prototype" + ".png";
@@ -115,7 +141,6 @@ New-AzureRmResourceGroupDeployment -ResourceGroupName $resourceGroupName `
                         @OptionalParameters `
                         -Force | Out-Null
 
-
 Write-Host "`nSetup completed`n" -ForegroundColor Green
 
 Write-Host "Parameters:`n"
@@ -129,7 +154,6 @@ Write-Host "Storage Account Name : " -NoNewline
 Write-Host "$storageAccountName" -ForegroundColor Yellow
 $uri = "https://$($webApp.DefaultHostName)"
 Write-Host "`nOpening the Demo App: " -NoNewline 
-Write-Host "$uri" -ForegroundColor Yellow
+Write-Host "$uri`n" -ForegroundColor Yellow
 
 cmd.exe /C start "$uri"
- 
