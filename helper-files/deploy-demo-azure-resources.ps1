@@ -1,92 +1,70 @@
 ﻿$ErrorActionPreference = 'Stop'
-<#
-$suffix = Read-Host -Prompt 'Enter a suffix for the demo resources. Can be your short name to easily identify. [ Only alphabets are allowed and should be of length mininum 4 characters and maximum 8 characters ] '
-if([string]::IsNullOrWhiteSpace($suffix)){
-    Write-Error 'Bad input! Run the script again.' 
-    break;
-}
-$suffix = $suffix.Trim()
-if($suffix.Length -lt 4 -and $suffix.Length -gt 8){
-    Write-Error 'Suffix too short or too long! Run the script again and enter a suffix with length between 4 and 8 characters.' 
-    break;
-}
-$suffix = $suffix.ToLower()
-if(!($suffix -match '^[a-z]+$')){
-    Write-Error 'Suffix contains non-alphabets! Run the script again and enter only alphabers.'
-    break;
-}
-#>
 
 $resourceNonce = [System.Guid]::NewGuid().ToString().Substring(0, 8)
 $resourceGroupName = "AzSDK-Demo-RG-" + $resourceNonce
+$deployLocation = "eastus"
 
 Write-Host "Setting up demo resources. This will take about 3 to 4 minutes..." -ForegroundColor Yellow
 
 $accountId = (Get-AzureRmContext).Account.Id
 
 $resourceGroup = Find-AzureRmResourceGroup -Tag @{"AccountId" = $accountId}
-if($resourceGroup -ne $null){
+if ($resourceGroup -ne $null) {
     Write-Host "Found the demo ResourceGroup" -ForegroundColor Green
     #Set RGName, Nonce
     $resourceGroupName = $resourceGroup.name
     $resourceNonce = $resourceGroup.tags.Nonce
 }
-else{
+else {
     Write-Host "Creating a demo ResourceGroup" -ForegroundColor Yellow
     $resourceGroup = New-AzureRmResourceGroup -Name $resourceGroupName -Location $deployLocation `
-                        -Tag @{"AccountId" = $accountId; 
-                                "Nonce" = $resourceNonce;
-                                "CreatedOn" = [datetime]::UtcNow.ToString('yyyyMMddHHmmss')}
+        -Tag @{"AccountId" = $accountId; 
+        "Nonce"            = $resourceNonce;
+        "CreatedOn"        = [datetime]::UtcNow.ToString('yyyyMMddHHmmss')
+    }
 }
 
-$deployLocation = "eastus"
 $webServicePlanName = "AzSDK-Demo-ASP-" + $resourceNonce
 $webAppName = "azsdk-demo-wa-" + $resourceNonce
 $storageAccountName = "azsdkdemosa" + $resourceNonce
 
-try
-{
+try {
     $webServicePlan = Get-AzureRmAppServicePlan -ResourceGroupName $resourceGroupName `
-                            -Name $webServicePlanName -ErrorAction Stop
+        -Name $webServicePlanName -ErrorAction Stop
     Write-Host "Found the demo AppServicePlan" -ForegroundColor Green
 }
-catch
-{
+catch {
     $webServicePlan = New-AzureRmAppServicePlan -ResourceGroupName $resourceGroupName `
-                            -Name $webServicePlanName `
-                            -Location $deployLocation `
-                            -Tier Basic
+        -Name $webServicePlanName `
+        -Location $deployLocation `
+        -Tier Basic
     Write-Host "Creating a demo AppServicePlan" -ForegroundColor Yellow
 }
 
 $webapps = Get-AzureRmWebApp -ResourceGroupName $resourceGroupName
-if($webapps -eq $null -or $webapps.Count -eq 0)
-{
+if ($webapps -eq $null -or $webapps.Count -eq 0) {
     $webApp = New-AzureRmWebApp -ResourceGroupName $resourceGroupName `
-                    -Name $webAppName `
-                    -AppServicePlan $webServicePlanName `
-                    -Location $deployLocation    
+        -Name $webAppName `
+        -AppServicePlan $webServicePlanName `
+        -Location $deployLocation    
     Write-Host "Creating a demo AppService" -ForegroundColor Yellow
 }
-else
-{
+else {
     $webapps = Get-AzureRmWebApp -ResourceGroupName $resourceGroupName
     $webApp = $webapps | Select -First 1                   
     Write-Host "Found the demo AppService" -ForegroundColor Green
 }
 $webAppName = $webApp.SiteName
 
-if((Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName | Measure-Object).Count -eq 0)
-{
+if ((Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName | Measure-Object).Count -eq 0) {
     $storageAccount = New-AzureRmStorageAccount -ResourceGroupName $resourceGroupName `
-                            -Name $storageAccountName `
-                            -SkuName Standard_LRS `
-                            -Location $deployLocation `
-                            -Kind Storage
+        -Name $storageAccountName `
+        -SkuName Standard_LRS `
+        -Location $deployLocation `
+        -Kind Storage
     Write-Host "Creating a demo StorageAccount" -ForegroundColor Yellow
 }
-else
-{
+else {
     $storageAccounts = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName
     $storageAccount = $storageAccounts | Select -First 1
     Write-Host "Found the demo StorageAccount" -ForegroundColor Green
@@ -95,23 +73,21 @@ else
 $storageAccountName = $storageAccount.StorageAccountName
 
 $storageAccountKey = Get-AzureRmStorageAccountKey -ResourceGroupName $resourceGroupName `
-                            -Name $storageAccountName
+    -Name $storageAccountName
 
 $storageAccountConnectionString = "DefaultEndpointsProtocol=https;AccountName=$storageAccountName;AccountKey=$($storageAccountKey[0].Value);EndpointSuffix=core.windows.net"
 
 $storageAccount = Get-AzureRmStorageAccount -ResourceGroupName $resourceGroupName `
-                            -Name $storageAccountName
+    -Name $storageAccountName
 Write-Host "Deploying the demo app" -ForegroundColor Yel
-try
-{
+try {
     $container = Get-AzureStorageContainer -Context $storageAccount.Context `
-                            -Name "patent-images" -ErrorAction Stop      
+        -Name "patent-images" -ErrorAction Stop      
 }
-catch
-{
+catch {
     $container = New-AzureStorageContainer -Context $storageAccount.Context `
-                            -Name "patent-images" `
-                            -Permission Container
+        -Name "patent-images" `
+        -Permission Container
 }
 
 $wc = [System.Net.WebClient]::new()
@@ -119,11 +95,11 @@ $fileName = "prototype" + ".png";
 $tempFilePath = Join-Path $env:TEMP $fileName
 $wc.DownloadFile("https://raw.githubusercontent.com/azsdk/azsdk-demo-app/master/helper-files/prototype.png", $tempFilePath)
 $na = Set-AzureStorageBlobContent -Context $storageAccount.Context `
-                            -Container $container.Name `
-                            -BlobType Block `
-                            -Blob $fileName `
-                            -File $tempFilePath `
-                            -Force
+    -Container $container.Name `
+    -BlobType Block `
+    -Blob $fileName `
+    -File $tempFilePath `
+    -Force
 
 Remove-Item $tempFilePath -Force
 
@@ -135,11 +111,11 @@ $OptionalParameters.Add("AppFarmName", $webServicePlanName)
 $OptionalParameters.Add("AppName", $webAppName)
 $OptionalParameters.Add("StorageAccountConnectionString", $storageAccountConnectionString.Trim())
 New-AzureRmResourceGroupDeployment -ResourceGroupName $resourceGroupName `
-                        -Name $DeploymentName `
-                        -TemplateFile $TemplateFile `
-                        -TemplateParameterFile $TemplateParametersFile `
-                        @OptionalParameters `
-                        -Force | Out-Null
+    -Name $DeploymentName `
+    -TemplateFile $TemplateFile `
+    -TemplateParameterFile $TemplateParametersFile `
+    @OptionalParameters `
+    -Force | Out-Null
 
 Write-Host "`nSetup completed`n" -ForegroundColor Green
 
