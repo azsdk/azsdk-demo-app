@@ -10,17 +10,17 @@ $registeredProviders = Get-AzureRmResourceProvider
 
 $storageProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Storage"}
 if (($storageProvider | Measure-Object).Count -le 0) {
-    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Storage"
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Storage" | Out-Null
 }
 
 $webProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Web"}
 if (($webProvider | Measure-Object).Count -le 0) {
-    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Web"
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Web" | Out-Null
 }
 
 $securityProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Security"}
 if (($securityProvider | Measure-Object).Count -le 0) {
-    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Security"
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Security" | Out-Null
 }
 
 $accountId = (Get-AzureRmContext).Account.Id
