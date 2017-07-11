@@ -6,6 +6,23 @@ $deployLocation = "eastus"
 
 Write-Host "Setting up demo resources. This will take about 3 to 4 minutes..." -ForegroundColor Yellow
 
+$registeredProviders = Get-AzureRmResourceProvider
+
+$storageProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Storage"}
+if (($storageProvider | Measure-Object).Count -le 0) {
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Storage"
+}
+
+$webProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Web"}
+if (($webProvider | Measure-Object).Count -le 0) {
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Web"
+}
+
+$securityProvider = $registeredProviders | Where-Object {$_.ProviderNamespace -eq "Microsoft.Security"}
+if (($securityProvider | Measure-Object).Count -le 0) {
+    Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.Security"
+}
+
 $accountId = (Get-AzureRmContext).Account.Id
 
 $resourceGroup = Find-AzureRmResourceGroup -Tag @{"AccountId" = $accountId}
@@ -110,6 +127,7 @@ $TemplateParametersFile = "$PSScriptRoot\Internals\DeploymentTemplate.param.json
 $OptionalParameters.Add("AppFarmName", $webServicePlanName)
 $OptionalParameters.Add("AppName", $webAppName)
 $OptionalParameters.Add("StorageAccountConnectionString", $storageAccountConnectionString.Trim())
+Start-Sleep -Seconds 120
 New-AzureRmResourceGroupDeployment -ResourceGroupName $resourceGroupName `
     -Name $DeploymentName `
     -TemplateFile $TemplateFile `

@@ -1,20 +1,4 @@
-﻿/*Summary of settings which are enforced and it is recommend that it should not be modified.
-  -Deploy Staging Slot of Application
-  -App Farm SKU is Standard
-  -Minimum 2 instances for web app
-  -Basic security settings configured for the slot 
-      -Disable Remote Debugging
-      -Latest .net framework
-      -Detailed error logging enabled
-      -Removes all default document names
-  -Configurations for web app
-      -Add a certificate to web app and configure it to load on startup
-      -Configure client id as an AppSetting to easily access it in code
-      -Configure Thumbprint of certificate for requesting Access Token from Azure AD
-  -Enable Authentication settings and allow ONLY Azure AD authentication and disables all other Auth providers. 
-      -The ClientId is used to configure Azure AD authentication.
-*/
-{
+﻿{
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
@@ -26,8 +10,8 @@
       }
     },
     "AppFarmSKU": {
-      "type": "string",      
-      "defaultValue": "Basic",
+      "type": "string",
+      "defaultValue": "Free",
       "metadata": {
         "description": "Pricing tier of the Server Farm"
       }
@@ -77,9 +61,9 @@
       "metadata": {
         "description": "StorageAccountConnectionString"
       }
-    }    
+    }
   },
-  "variables": {    
+  "variables": {
     "location": "[resourceGroup().location]",
     "appTypePrefix": "WebApp",
     "microsoft.web-serverfarms-apiVersion": "2014-06-01",
@@ -96,7 +80,7 @@
       "type": "Microsoft.Web/serverfarms",
       "location": "[variables('location')]",
       "apiVersion": "[variables('microsoft.web-serverfarms-apiVersion')]",
-      "dependsOn": [ ],
+      "dependsOn": [],
       "tags": {
         "displayName": "[concat(variables('appTypePrefix'),'ServerFarm')]"
       },
@@ -104,8 +88,7 @@
         "name": "[parameters('AppFarmName')]",
         "sku": "[parameters('AppFarmSKU')]",
         "workerSize": "[parameters('AppFarmWorkerSize')]",
-        "numberOfWorkers": "[parameters('AppFarmInstances')]"//,
-        //"hostingEnvironment": "SAFETiASE"
+        "numberOfWorkers": "[parameters('AppFarmInstances')]"
       }
     },
     {
@@ -123,8 +106,7 @@
       },
       "properties": {
         "name": "[parameters('AppName')]",
-        "serverFarm": "[parameters('AppFarmName')]"//,
-        //"hostingEnvironment": "SAFETiASE"
+        "serverFarm": "[parameters('AppFarmName')]"
       },
       "resources": [
         {
@@ -141,61 +123,60 @@
           "properties": {
             "phpVersion": "off",
             "netFrameworkVersion": "v4.6",
-            "use32BitWorkerProcess": false, /* 64-bit platform */
+            "use32BitWorkerProcess": true,
             "webSocketsEnabled": false,
-            "alwaysOn": true, /* Prevent App to go to Sleep*/
-            "requestTracingEnabled": false, /* Failed request tracing, aka 'freb' */
-            "httpLoggingEnabled": false, /* IIS logs (aka Web server logging) */
-            "logsDirectorySizeLimit": 40, /* Size limit for IIS logs */
-            "detailedErrorLoggingEnabled": true, /* Detailed error messages  */
-            "remoteDebuggingEnabled": false, /*if false, no need to specify VS version*/
+            "alwaysOn": false,
+            "requestTracingEnabled": false,
+            "httpLoggingEnabled": false,
+            "logsDirectorySizeLimit": 40,
+            "detailedErrorLoggingEnabled": true,
+            "remoteDebuggingEnabled": false,
             "remoteDebuggingVersion": "VS2015",
-            "defaultDocuments": [ /* Clear all default documents*/
-            ]
+            "defaultDocuments": []
           }
-        },       
+        },
         {
-              "apiVersion": "[variables('config-appsettings-apiVersion')]",
-              "name": "appsettings",
-              "type": "config",
-              "dependsOn": [
-                "[resourceId('Microsoft.Web/Sites', parameters('AppName'))]",
-                "[concat('Microsoft.Web/Sites/', parameters('AppName'), '/Extensions/MSDeploy')]"
-              ],
-              "tags": {
-                "displayName": "[concat(variables('appTypePrefix'),'ApplicationSettings')]"
-              },
-              "properties": {
-                "StorageAccountConnectionString": "[parameters('StorageAccountConnectionString')]"
-              }
-            },
-            {
-              "name": "MSDeploy",
-              "type": "Extensions",
-              "location": "[variables('location')]",
-              "apiVersion": "[variables('extentions-apiVersion')]",
-              "dependsOn": [
-                "[resourceId('Microsoft.Web/Sites', parameters('AppName'))]"
-              ],
-              "tags": {
-                "displayName": "[concat(variables('appTypePrefix'),'MSDeployExtension')]"
-              },
-              "properties": {
-                "packageUri": "[variables('webappPkgURI')]",
-                "dbType": "None",
-                "connectionString": "",
-                "setParameters": {
-                  "IIS Web Application Name": "[parameters('AppName')]"
-                }
-              }
+          "apiVersion": "[variables('config-appsettings-apiVersion')]",
+          "name": "appsettings",
+          "type": "config",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', parameters('AppName'))]",
+            "[concat('Microsoft.Web/Sites/', parameters('AppName'), '/Extensions/MSDeploy')]"
+          ],
+          "tags": {
+            "displayName": "[concat(variables('appTypePrefix'),'ApplicationSettings')]"
+          },
+          "properties": {
+            "StorageAccountConnectionString": "[parameters('StorageAccountConnectionString')]"
+          }
+        },
+        {
+          "name": "MSDeploy",
+          "type": "Extensions",
+          "location": "[variables('location')]",
+          "apiVersion": "[variables('extentions-apiVersion')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', parameters('AppName'))]"
+          ],
+          "tags": {
+            "displayName": "[concat(variables('appTypePrefix'),'MSDeployExtension')]"
+          },
+          "properties": {
+            "packageUri": "[variables('webappPkgURI')]",
+            "dbType": "None",
+            "connectionString": "",
+            "setParameters": {
+              "IIS Web Application Name": "[parameters('AppName')]"
             }
+          }
+        }
       ]
-    }    
+    }
   ],
   "outputs": {
     "siteUri": {
       "type": "string",
       "value": "[concat('http://',reference(resourceId('Microsoft.Web/sites', parameters('AppName'))).hostNames[0])]"
-    }    
+    }
   }
 }
